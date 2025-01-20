@@ -1,10 +1,11 @@
-import {View, StyleSheet } from "react-native";
+import {View, StyleSheet, Platform } from "react-native";
 import Button from "@/components/Button";
 import ImageViewer from "@/components/ImageViewer";
 import * as ImagePicker from 'expo-image-picker';
 import {useState, useRef} from 'react';
 import { type ImageSource } from "expo-image";
 import { captureRef } from "react-native-view-shot";
+import domtoimage from "dom-to-image";
 
 import IconButton from "@/components/IconButton";
 import CircleButton from "@/components/CircleButton";
@@ -58,21 +59,36 @@ export default function Index() {
   };
 
   const onSaveImageAsync = async ()=>{
-    try {
-      const localUri = await captureRef(imageRef,{
-        height:440,
-        quality:1,
-      });
-
-      await MediaLibrary.saveToLibraryAsync(localUri);
-      if (localUri) {
-        alert('Saved');
-      } else {
-        alert('Not saved');
+    if (Platform.OS !== 'web'){
+      try {
+        const localUri = await captureRef(imageRef,{
+          height:440,
+          quality:1,
+        });
+        await MediaLibrary.saveToLibraryAsync(localUri);
+        if (localUri) {
+          alert('Saved');
+        } 
+      } catch (e) {
+        console.log(e);
       }
-    } catch (e) {
-      console.log(e);
+    } else {
+      try {
+        const dataUri = await domtoimage.toJpeg(imageRef.current, {
+          quality:0.95,
+          width:320,
+          height:440,
+        });
+
+        let link = document.createElement('a');
+        link.download = 'sticker-smash.jpg';
+        link.href = dataUri;
+        link.click();
+      } catch (e) {
+        console.log(e);
+      }
     }
+    
 
   };
 
@@ -87,6 +103,7 @@ export default function Index() {
       {showAppOptions ? (
         <View style={styles.optionsContainer}>
           <View style={styles.optionsRow}>
+            
             <IconButton icon='refresh' label="Reset" onPress={onReset} />
             <CircleButton onPress={onAddSticker}/>
             <IconButton icon="save-alt" label="Save" onPress={onSaveImageAsync} />
